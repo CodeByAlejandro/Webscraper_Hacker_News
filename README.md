@@ -4,7 +4,7 @@ Created python webscraper for Hacker News to merge news items from multiple page
 # Installation
 Install in virtual environment using following commands:
 ```shell
-git clone https://github.com/CodeByAlejandro/Portfolio.git
+git clone https://github.com/CodeByAlejandro/Webscraper_Hacker_News.git
 cd Webscraper_Hacker_News
 python3 -m venv .venv
 . .venv/bin/activate
