@@ -163,8 +163,8 @@ class NewsPage():
                     f"NewsPage {merge_page.page_nbr}: " +
                     "target page has no news items!"
                 )
-            merge_news_table_tag = merge_page.news_item_list[0]._athing_tag
-            merge_news_table = merge_news_table_tag.find_parent("table")
+            merge_news_item_tag = merge_page.news_item_list[0]._athing_tag
+            merge_news_table = merge_news_item_tag.find_parent("table")
             if not merge_news_table:
                 raise ValueError(
                     f"Cannot append NewsPage {self.page_nbr} to " +
@@ -191,6 +191,41 @@ class NewsPage():
                 self.news_item_list[index] = copy_news_item
             merge_news_table.replace_with(ordered_table)
             merge_page.news_item_list.extend(self.news_item_list)
+
+    def merge_with_all(self, other_pages: List["NewsPage"]) -> None:
+        if not len(self.news_item_list) > 0:
+            raise ValueError(
+                f"Cannot merge NewsPage {self.page_nbr} with any other news " +
+                "pages: page has no news items!"
+            )
+        news_table = self.news_item_list[0]._athing_tag.find_parent("table")
+        if not news_table:
+            raise ValueError(
+                f"Cannot merge NewsPage {self.page_nbr} with any other news " +
+                "pages: page has no parent table element!"
+            )
+        news_table_attrs = news_table.attrs
+        ordered_table_soup = BeautifulSoup(
+            "<table><tbody></tbody></table>", "html.parser"
+        )
+        if not (ordered_table_soup.table and ordered_table_soup.tbody):
+            raise RuntimeError(
+                "Error: BeautifulSoup could not parse replacement table!"
+            )
+        ordered_table = ordered_table_soup.table
+        for attr, value in news_table_attrs.items():
+            ordered_table[attr] = value
+        ordered_table_body = ordered_table_soup.tbody
+        for index, news_item in enumerate(self.news_item_list):
+            copy_news_item = news_item.append_copy_to(ordered_table_body)
+            self.news_item_list[index] = copy_news_item
+        for page in other_pages:
+            for index, news_item in enumerate(page.news_item_list):
+                copy_news_item = news_item.append_copy_to(ordered_table_body)
+                page.news_item_list[index] = copy_news_item
+        news_table.replace_with(ordered_table)
+        for page in other_pages:
+            self.news_item_list.extend(page.news_item_list)
 
     def update_item_ranking_in_soup(self):
         for index, news_item in enumerate(self.news_item_list):
@@ -284,11 +319,16 @@ if __name__ == "__main__":
     # print("Wrote new version of Hacker news HTML-page 1 to", html_path)
 
 
+    # # Create merged page
+    # main_page = news_pages[0]
+    # if nbr_of_pages > 1:
+    #     for news_page in news_pages[1:]:
+    #         news_page.append_to(main_page)
+
     # Create merged page
     main_page = news_pages[0]
     if nbr_of_pages > 1:
-        for news_page in news_pages[1:]:
-            news_page.append_to(main_page)
+        main_page.merge_with_all(news_pages[1:])
 
     # Sort merged page
     main_page.sort_news_items(key=lambda news_item: news_item.score,
